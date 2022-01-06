@@ -71,6 +71,8 @@ textInput(inputId = "refreshTokens", label = "Paste tokens separated by space")
 actionButton(inputId = "generate2", label = "Gather data")
 
 observeEvent(input$generate2, {
+  showModal(modalDialog("Gathering fitbit data. Might take a couple of minutes!", footer=NULL))
+
   dat$refreshTokens <- strsplit(input$refreshTokens, " ") |> unlist()
   print(dat$refreshTokens)
   dat$accessTokens <- lapply(dat$refreshTokens, 
@@ -89,6 +91,7 @@ observeEvent(input$generate2, {
   if(is.null(dat$out))
     shinyalert::shinyalert("Something happened. Contact Leo.", type = "error")
   shinyalert::shinyalert("Done gathering data")
+  removeModal()
 })
 ```
 

@@ -42,7 +42,3 @@ getData <- function(token,
     httr::content(as = "text") |>
     jsonlite::fromJSON(simplifyVector = TRUE)
 }
-
-# refrToken <- activationCode("18f11e2596a6cf799115c7ba41073a6da8f11a0c")
-# actiToken <- accessToken("e4e50c7a0ffd1a809426a4710ab99399f621560b08e7997322a69e115ca5bf56")
-# getData(actiToken$access_token, startDate = "2021-12-29")

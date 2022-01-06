@@ -14,12 +14,17 @@ clientID <- readLines("clientID.txt") #both these tokens currently point to a te
 auth <- readLines("authorization.txt") #both these tokens currently point to a temporary fitbit app
 ```
 
+Token Generation
+=====================================  
+
 Row {data-height=400}
 -----------------------------------------------------------------------
 
 ### Step 1: Activation Link
 
-Send this to the Fitbit user and approve permisions. Copy the activation code from the url.
+Overall workflow: go through step 1-3 from Token Generation page for each participant. Do not proceed to step 4 on Data Download (including "testing" the tokens) until you have collected **all tokens**. Using a token deactivates it within 24 hours.
+
+Send the link below to the Fitbit user and approve permissions. Copy the activation code from the url.
 
 ```{r}
 url <- paste0("https://www.fitbit.com/oauth2/authorize?response_type=code&client_id=",
@@ -30,8 +35,6 @@ a("Activation link",
   href = url, 
   target = "_blank")  
 ```
-
-Overall workflow: go through step 1-3 with each participant. Do not proceed to step 4 (or even test your tokens) until you have collected **all tokens** as using a token deactivates within 24 hours.
 
 ### Step 2: Generate access codes for user
 
@@ -56,6 +59,9 @@ h3(
 )
 h3("Warning: you can only use the generated token to gather data **once**")
 ```
+
+Data Download
+=====================================  
 
 Row {data-height=400}
 -----------------------------------------------------------------------

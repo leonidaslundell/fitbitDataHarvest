@@ -33,12 +33,51 @@ accessToken <- function(refresh, clientID, auth){
 getData <- function(token, 
                     startDate, 
                     finishDate = "today"){
-  url <- paste0("https://api.fitbit.com/1/user/-/activities/steps/date/",
+  
+  activities <- lapply(c("steps", 
+                         "heart", 
+                         "minutesSedentary", 
+                         "minutesLightlyActive", 
+                         "minutesFairlyActive", 
+                         "minutesVeryActive"), \(x){
+             Sys.sleep(.2)
+             url <- paste0("https://api.fitbit.com/1/user/-/activities/",
+                           x,
+                           "/date/",
+                           startDate,
+                           "/",
+                           finishDate,
+                           ".json")
+             x <- httr::GET(url = url, httr::add_headers("Authorization" = paste("Bearer", token))) |>
+               httr::content(as = "text") |>
+               jsonlite::fromJSON(simplifyVector = TRUE)
+             x[[1]]
+           })
+  
+  names(activities) <- c("steps", 
+                         "heart", 
+                         "minutesSedentary", 
+                         "minutesLightlyActive", 
+                         "minutesFairlyActive", 
+                         "minutesVeryActive")
+  
+  url <- paste0("https://api.fitbit.com/1.2/user/-/sleep/date/",
                 startDate,
                 "/",
                 finishDate,
                 ".json")
-  httr::GET(url = url, httr::add_headers("Authorization" = paste("Bearer", token))) |>
+  activities$sleep <- httr::GET(url = url, httr::add_headers("Authorization" = paste("Bearer", token))) |>
     httr::content(as = "text") |>
     jsonlite::fromJSON(simplifyVector = TRUE)
+  
+  activities <- sapply(names(activities), \(act){
+    if(!is.null(dim(activities[[act]]))){#sleep returns null sometimes
+      colnames(activities[[act]])[-1] <- act
+      activities[[act]]
+    }else{
+      activities[[act]] <- data.frame(dateTime = activities[[1]][,1])
+    }
+  })
+  
+  activities <- cbind(activities$heart, Reduce(, activities[-2]))
 }

@@ -17,7 +17,7 @@ auth <- readLines("authorization.txt") #both these tokens currently point to a t
 Row {data-height=400}
 -----------------------------------------------------------------------
 
-### Activation Link
+### Step 1: Activation Link
 
 Send this to the Fitbit user and approve permisions. Copy the activation code from the url.
 
@@ -31,7 +31,9 @@ a("Activation link",
   target = "_blank")  
 ```
 
-### Generate access codes for user
+Overall workflow: go through step 1-3 with each participant. Do not proceed to step 4 (or even test your tokens) until you have collected **all tokens** as using a token deactivates within 24 hours.
+
+### Step 2: Generate access codes for user
 
 ```{r}
 dat <- reactiveValues(refreshToken = "---")
@@ -45,7 +47,7 @@ observeEvent(input$generate1, {
 })
 ```
 
-###
+### Step 3: Generate token
 
 ```{r}
 h2("Save this token:")
@@ -58,7 +60,7 @@ h3("Warning: you can only use the generated token to gather data **once**")
 Row {data-height=400}
 -----------------------------------------------------------------------
 
-### Batch download data for several users
+### Step 4: Batch download data for several users
 
 ```{r}
 dateRangeInput("daterange", "Date range to download:",
@@ -81,12 +83,12 @@ observeEvent(input$generate2, {
                     finishDate = input$daterange[2])
   names(dat$out) <- unlist(dat$accessTokens)
   dat$out <- lapply(names(dat$out), \(x){
-    dat$out[[x]][[1]]$token <- x
-    dat$out[[x]][[1]]
+    dat$out[[x]]$token <- x
+    dat$out[[x]]
   }) |> Reduce(f = rbind)
-  print(head(dat$out))
   if(is.null(dat$out))
     shinyalert::shinyalert("Something happened. Contact Leo.", type = "error")
+  shinyalert::shinyalert("Done gathering data")
 })
 ```
 

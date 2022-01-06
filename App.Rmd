@@ -52,13 +52,15 @@ observeEvent(input$generate1, {
 
 ### Step 3: Generate token
 
+Save this token:
+
 ```{r}
-h2("Save this token:")
 h3(
   renderText(dat$refreshToken)
 )
-h3("Warning: you can only use the generated token to gather data **once**")
 ```
+
+Warning: you can only use the generated token to gather data **once**
 
 Data Download
 =====================================  

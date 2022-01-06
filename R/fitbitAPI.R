@@ -1,7 +1,7 @@
 #persistent activation code for generating access tokens
-activationCode <- function(code, clientID){
+activationCode <- function(code, clientID, auth){
   x <- httr::POST(url = "https://api.fitbit.com/oauth2/token", 
-                  httr::add_headers("Authorization" = " Basic MjM4M0Q2OjdlYjdlZDQ5NGJjMWFkN2FjMGFlZGE0MWJlODk4Zjhj",
+                  httr::add_headers("Authorization" = auth,
                                     "Content-Type" = "application/x-www-form-urlencoded"),
                   body = list("clientId" = clientID,
                               "grant_type" = "authorization_code",
@@ -15,9 +15,9 @@ activationCode <- function(code, clientID){
 }
 
 #use access code for generating an access token
-accessToken <- function(refresh, clientID){
+accessToken <- function(refresh, clientID, auth){
   x <- httr::POST(url = "https://api.fitbit.com/oauth2/token", 
-             httr::add_headers("Authorization" = " Basic MjM4M0Q2OjdlYjdlZDQ5NGJjMWFkN2FjMGFlZGE0MWJlODk4Zjhj",
+             httr::add_headers("Authorization" = auth,
                                "Content-Type" = "application/x-www-form-urlencoded"),
              body = list("clientId" = clientID,
                          "grant_type" = "refresh_token",

@@ -11,6 +11,7 @@ library(flexdashboard)
 library(shiny)
 source("./R/fitbitAPI.R")
 clientID <- readLines("clientID.txt")
+auth <- readLines("authorization.txt")
 ```
 
 Row {data-height=400}
@@ -33,12 +34,13 @@ a("Activation link",
 ### Generate access codes for user
 
 ```{r}
+dat <- reactiveValues(refreshToken = "---")
+
 textInput(inputId = "accessCode", label = "Insert the access code from the url")
 actionButton(inputId = "generate1", label = "Generate token")
-dat <- reactiveValues(refreshToken = NULL)
 
 observeEvent(input$generate1, {
-  dat$refreshToken <- activationCode(input$accessCode, clientID = clientID)
+  dat$refreshToken <- activationCode(input$accessCode, clientID = clientID, auth = auth)
   shinyalert::shinyalert("Token generated")
 })
 ```
@@ -50,7 +52,7 @@ h2("Save this token:")
 h3(
   renderText(dat$refreshToken)
 )
-h3("Warning: you can only use the generated token to generate data **once**")
+h3("Warning: you can only use the generated token to gather data **once**")
 ```
 
 Row {data-height=400}
@@ -63,15 +65,16 @@ dateRangeInput("daterange", "Date range to download:",
                  start = Sys.Date()-10,
                  end = Sys.Date())
 
-textInput(inputId = "refreshTokens", label = "Paste tokens")
-actionButton(inputId = "generate2", label = "Generate data")
+textInput(inputId = "refreshTokens", label = "Paste tokens separated by space")
+actionButton(inputId = "generate2", label = "Gather data")
 
 observeEvent(input$generate2, {
   dat$refreshTokens <- strsplit(input$refreshTokens, " ") |> unlist()
   print(dat$refreshTokens)
   dat$accessTokens <- lapply(dat$refreshTokens, 
                              accessToken, 
-                             clientID = clientID)
+                             clientID = clientID,
+                             auth = auth)
   dat$out <- lapply(dat$accessTokens, 
                     getData, 
                     startDate = input$daterange[1], 
@@ -88,7 +91,7 @@ observeEvent(input$generate2, {
 ```
 
 ```{r}
-downloadLink("downloadData", "Download activity")
+downloadLink("downloadData", "Download data")
 ```
 
 ```{r}

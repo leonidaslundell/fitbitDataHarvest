@@ -10,8 +10,8 @@ runtime: shiny
 library(flexdashboard)
 library(shiny)
 source("./R/fitbitAPI.R")
-clientID <- readLines("clientID.txt")
-auth <- readLines("authorization.txt")
+clientID <- readLines("clientID.txt") #both these tokens currently point to a temporary fitbit app
+auth <- readLines("authorization.txt") #both these tokens currently point to a temporary fitbit app
 ```
 
 Row {data-height=400}

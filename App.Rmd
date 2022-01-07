@@ -71,9 +71,18 @@ Row {data-height=400}
 ### Step 4: Batch download data for several users
 
 ```{r}
-dateRangeInput("daterange", "Date range to download:",
-                 start = Sys.Date()-10,
-                 end = Sys.Date())
+dateRangeInput("daterange", "Date range to download (max 100 days):",
+               start = Sys.Date()-14,
+               end = Sys.Date())
+
+observeEvent(input$daterange,{
+  range <- (difftime(input$daterange[2], input$daterange[1], units = "days")) |> as.numeric()
+  if(range>100){
+    shinyalert::shinyalert("Max date range is 100 days, start date has been changed", type = "warning")
+    range[1] <- (as.Date(input$daterange[2]) - 100) |> as.character()
+    shiny::updateDateRangeInput(inputId = "daterange", start = input$daterange[2]-100)
+  }
+})
 
 textInput(inputId = "refreshTokens", label = "Paste tokens separated by space")
 actionButton(inputId = "generate2", label = "Gather data")
@@ -82,7 +91,6 @@ observeEvent(input$generate2, {
   showModal(modalDialog("Gathering fitbit data. Might take a couple of minutes!", footer=NULL))
 
   dat$refreshTokens <- strsplit(input$refreshTokens, " ") |> unlist()
-  print(dat$refreshTokens)
   dat$accessTokens <- lapply(dat$refreshTokens, 
                              accessToken, 
                              clientID = clientID,

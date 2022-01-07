@@ -114,5 +114,6 @@ getData <- function(token,
   sleep <- sleep[match(dateTime, sleep$dateTime), -1]
   
   activities <- cbind(dateTime, heart, activities, sleep)
+  activities[is.na(activities)] <- "Not found"
   activities
 }

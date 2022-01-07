@@ -1,3 +1,5 @@
+#https://dev.fitbit.com/apps/oauthinteractivetutorial
+
 #persistent activation code for generating access tokens
 activationCode <- function(code, clientID, auth){
   x <- httr::POST(url = "https://api.fitbit.com/oauth2/token", 
@@ -32,7 +34,9 @@ accessToken <- function(refresh, clientID, auth){
 #get data for 
 getData <- function(token, 
                     startDate, 
-                    finishDate = "today"){
+                    finishDate = NULL){
+  if(is.null(finishDate))
+    finishDate <- Sys.Date()
   
   activities <- lapply(c("steps", 
                          "heart", 
@@ -66,32 +70,35 @@ getData <- function(token,
                 "/",
                 finishDate,
                 ".json")
-  activities$sleep <- httr::GET(url = url, httr::add_headers("Authorization" = paste("Bearer", token))) |>
+  sleep <- httr::GET(url = url, httr::add_headers("Authorization" = paste("Bearer", token))) |>
     httr::content(as = "text") |>
     jsonlite::fromJSON(simplifyVector = TRUE)
   
+  #sleep date is coming out inverted..
+  sleep <- data.frame(dateTime = sleep$sleep$dateOfSleep, 
+                      sapply(sleep$sleep$levels$summary, \(x) x$minutes))
+  
   #heart data json response needs separate handlening
   heart <- activities$heart
-  # keep <- heart
-  # heart <- keep
-  # names(heart$value$heartRateZones) <- heart$dateTime
   dateTime <- heart$dateTime
-  heart <- lapply(c("Out of Range",
+  
+  heart <- sapply(c("Out of Range",
                     "Fat Burn",
                     "Cardio",
                     "Peak"), \(property){
-                      propertyInt <- sapply(heart$value$heartRateZones, \(day){
-                        x <- day[day$name == property, -3] 
-                        colnames(x) <-  paste0(colnames(x)," ", property)
-                        x
+                      sapply(heart$value$heartRateZones, \(day){
+                        if(is.null(day[day$name == property, "minutes"]))
+                          return(NA)
+                        else
+                          day[day$name == property, "minutes"] 
                       })
-                      t(propertyInt)
-                    })
-  heart <- Reduce(cbind, heart)
+                    })#if NULL then no time has been spent in either of these ranges
+  
+  colnames(heart) <- paste0("Min spent ", colnames(heart))
   
   #recast the data for one dataframe
   activities <- activities[!grepl("heart", names(activities))]
-  activities <- sapply(names(activities), \(act){
+  activities <- lapply(names(activities), \(act){
     if(!is.null(dim(activities[[act]]))){#sleep returns null sometimes
       colnames(activities[[act]])[-1] <- act
       activities[[act]]
@@ -102,6 +109,10 @@ getData <- function(token,
   
   activities <- Reduce(cbind, activities)
   activities <- activities[,!grepl("dateTime", colnames(activities))]
-  activities <- cbind(dateTime, heart, activities)
+  
+  #reformat sleep for merging with activities
+  sleep <- sleep[match(dateTime, sleep$dateTime), -1]
+  
+  activities <- cbind(dateTime, heart, activities, sleep)
   activities
 }

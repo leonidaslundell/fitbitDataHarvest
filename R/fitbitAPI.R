@@ -3,7 +3,7 @@
 #persistent activation code for generating access tokens
 activationCode <- function(code, clientID, auth){
   x <- httr::POST(url = "https://api.fitbit.com/oauth2/token", 
-                  httr::add_headers("Authorization" = auth,
+                  httr::add_headers("Authorization" = paste0(" Basic ", auth),
                                     "Content-Type" = "application/x-www-form-urlencoded"),
                   body = list("clientId" = clientID,
                               "grant_type" = "authorization_code",
@@ -19,7 +19,7 @@ activationCode <- function(code, clientID, auth){
 #use access code for generating an access token
 accessToken <- function(refresh, clientID, auth){
   x <- httr::POST(url = "https://api.fitbit.com/oauth2/token", 
-             httr::add_headers("Authorization" = auth,
+             httr::add_headers("Authorization" = paste0(" Basic ", auth),
                                "Content-Type" = "application/x-www-form-urlencoded"),
              body = list("clientId" = clientID,
                          "grant_type" = "refresh_token",
@@ -38,12 +38,16 @@ getData <- function(token,
   if(is.null(finishDate))
     finishDate <- Sys.Date()
   
+  if(is.null(token))#API returns different for NULL or invalid token
+    token <- "Bad token"
+  
   activities <- lapply(c("steps", 
                          "heart", 
                          "minutesSedentary", 
                          "minutesLightlyActive", 
                          "minutesFairlyActive", 
-                         "minutesVeryActive"), \(act){
+                         "minutesVeryActive",
+                         "calories"), \(act){
              Sys.sleep(.2)
              url <- paste0("https://api.fitbit.com/1/user/-/activities/",
                            act,
@@ -52,7 +56,8 @@ getData <- function(token,
                            "/",
                            finishDate,
                            ".json")
-             act <- httr::GET(url = url, httr::add_headers("Authorization" = paste("Bearer", token))) |>
+             act <- httr::GET(url = url, 
+                              httr::add_headers("Authorization" = paste("Bearer", token))) |>
                httr::content(as = "text") |>
                jsonlite::fromJSON(simplifyVector = TRUE)
              act[[1]]
@@ -63,7 +68,8 @@ getData <- function(token,
                          "minutesSedentary", 
                          "minutesLightlyActive", 
                          "minutesFairlyActive", 
-                         "minutesVeryActive")
+                         "minutesVeryActive",
+                         "calories")
   
   url <- paste0("https://api.fitbit.com/1.2/user/-/sleep/date/",
                 startDate,
@@ -78,42 +84,48 @@ getData <- function(token,
   sleep <- data.frame(dateTime = sleep$sleep$dateOfSleep, 
                       sapply(sleep$sleep$levels$summary, \(x) x$minutes))
   
-  #heart data json response needs separate handlening
-  heart <- activities$heart
-  dateTime <- heart$dateTime
+  #handling no data from api
+  if(!activities$steps |> dim() |> is.null()){
+    #heart data json response needs separate handlening
+    heart <- activities$heart
+    dateTime <- heart$dateTime
+    
+    heart <- sapply(c("Out of Range",
+                      "Fat Burn",
+                      "Cardio",
+                      "Peak"), \(property){
+                        sapply(heart$value$heartRateZones, \(day){
+                          if(is.null(day[day$name == property, "minutes"]))
+                            return(NA)
+                          else
+                            day[day$name == property, "minutes"] 
+                        })
+                      })#if NULL then no time has been spent in either of these ranges
+    
+    colnames(heart) <- paste0("Min spent ", colnames(heart))
+    
+    #recast the data for one dataframe
+    activities <- activities[!grepl("heart", names(activities))]
+    activities <- lapply(names(activities), \(act){
+      if(!is.null(dim(activities[[act]]))){#sleep returns null sometimes
+        colnames(activities[[act]])[-1] <- act
+        activities[[act]]
+      }else{
+        activities[[act]] <- data.frame(dateTime = activities[[1]][,1])#ugly hack for sleep being null
+      }
+    })
+    
+    activities <- Reduce(cbind, activities)
+    activities <- activities[,!grepl("dateTime", colnames(activities))]
+    
+    #reformat sleep for merging with activities
+    sleep <- sleep[match(dateTime, sleep$dateTime), -1]
+    
+    activities <- cbind(dateTime, heart, activities, sleep)
+    activities[is.na(activities)] <- "No data"
+  }else{
+    activities <- data.frame()
+  }
   
-  heart <- sapply(c("Out of Range",
-                    "Fat Burn",
-                    "Cardio",
-                    "Peak"), \(property){
-                      sapply(heart$value$heartRateZones, \(day){
-                        if(is.null(day[day$name == property, "minutes"]))
-                          return(NA)
-                        else
-                          day[day$name == property, "minutes"] 
-                      })
-                    })#if NULL then no time has been spent in either of these ranges
-  
-  colnames(heart) <- paste0("Min spent ", colnames(heart))
-  
-  #recast the data for one dataframe
-  activities <- activities[!grepl("heart", names(activities))]
-  activities <- lapply(names(activities), \(act){
-    if(!is.null(dim(activities[[act]]))){#sleep returns null sometimes
-      colnames(activities[[act]])[-1] <- act
-      activities[[act]]
-    }else{
-      activities[[act]] <- data.frame(dateTime = activities[[1]][,1])#ugly hack for sleep being null
-    }
-  })
-  
-  activities <- Reduce(cbind, activities)
-  activities <- activities[,!grepl("dateTime", colnames(activities))]
-  
-  #reformat sleep for merging with activities
-  sleep <- sleep[match(dateTime, sleep$dateTime), -1]
-  
-  activities <- cbind(dateTime, heart, activities, sleep)
-  activities[is.na(activities)] <- "Not found"
-  activities
+  return(activities)
 }

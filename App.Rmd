@@ -88,6 +88,8 @@ textInput(inputId = "refreshTokens", label = "Paste tokens separated by space")
 actionButton(inputId = "generate2", label = "Gather data")
 
 observeEvent(input$generate2, {
+  
+  updateTextInput(session, input$refreshTokens, value = "")
   showModal(modalDialog("Gathering fitbit data. Might take a couple of minutes!", footer=NULL))
 
   dat$refreshTokens <- strsplit(input$refreshTokens, " ") |> unlist()
@@ -95,20 +97,31 @@ observeEvent(input$generate2, {
                              accessToken, 
                              clientID = clientID,
                              auth = auth)
-  dat$out <- lapply(dat$accessTokens, 
-                    getData, 
-                    startDate = input$daterange[1], 
-                    finishDate = input$daterange[2])
+  
+  dat$newRefreshTokens <- sapply(dat$accessTokens, \(x){
+    x$refresh_token
+  })
+  
+  dat$out <- lapply(dat$accessTokens, \(tok){
+    Sys.sleep(0.2)
+    getData(token = tok$access_token,
+            startDate = input$daterange[1], 
+            finishDate = input$daterange[2]) |>
+      integrityCheck(token = tok$refresh_token)
+  })
+  
+  sapply(dat$out, class)
+  print("------------------------")
+  sapply(dat$out, colnames)
+  print("------------------------")
+  lapply(dat$out, \(x) print(x))
+  print("------------------------")
+  
   removeModal()
   
   if(dat$out[[1]] |> dim() |> is.null()){
     shinyalert::shinyalert("Something happened. Contact Leo.", type = "error")
   }else{
-    names(dat$out) <- unlist(dat$accessTokens)
-    dat$out <- lapply(names(dat$out), \(x){
-      dat$out[[x]]$token <- x
-      dat$out[[x]]
-    }) |> Reduce(f = rbind)
     if(is.null(dat$out))
       shinyalert::shinyalert("Something happened. Contact Leo.", type = "error")
   }
@@ -123,14 +136,21 @@ downloadLink("downloadData", "Download data")
 output$downloadData <- downloadHandler(
     filename = "activities.xlsx",
     content = function(file) {
-      openxlsx::write.xlsx(dat$out, file)
+      writexl::write_xlsx(dat$out, file)
     }
   )
 ```
 
-### Sample of the data
+### New tokens
+
+Save these tokens. The old tokens are now inactive.
+
+```{r}
+renderTable(data.frame(dat$newRefreshTokens), colnames = F, rownames = F)
+```
+
+### Sample of data
 
 ```{r}
 renderTable(head(dat$out))
 ```
-

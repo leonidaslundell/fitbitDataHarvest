@@ -110,12 +110,9 @@ observeEvent(input$generate2, {
       integrityCheck(token = tok$refresh_token)
   })
   
-  sapply(dat$out, class)
-  print("------------------------")
-  sapply(dat$out, colnames)
-  print("------------------------")
-  lapply(dat$out, \(x) print(x))
-  print("------------------------")
+  for(i in 1:length(dat$out)){
+    try(dat$out[[i]]$oldToken <- input$refreshTokens[i])
+  }
   
   removeModal()
   

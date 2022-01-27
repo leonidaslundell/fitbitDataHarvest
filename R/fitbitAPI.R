@@ -151,10 +151,13 @@ integrityCheck <- function(df, token){
                       "wake",
                       "token")
   df$token <- token
-  if(all(colnames(comp) %in% colnames(df))){
-    df[,colnames(comp)]#it seems like the columns are reorganized for some specific users...
-    return(df)
-  }else{
-    return(comp)
+  if(!all(colnames(comp) %in% colnames(df))){
+    missing <- colnames(comp)[!colnames(comp) %in% colnames(df)]
+    missing <- matrix("no data", ncol = length(missing), nrow = nrow(df), dimnames = list(NULL, missing))
+    df <- cbind(df, missing)
   }
+  df <- df[,colnames(df) %in% colnames(comp)]#drop any extra columns
+  df <- df[,colnames(comp)]#it seems like the columns are reorganized for some specific users...
+  
+  return(df)
 }

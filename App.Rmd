@@ -103,7 +103,7 @@ observeEvent(input$generate2, {
   })
   
   dat$out <- lapply(dat$accessTokens, \(tok){
-    Sys.sleep(0.2)
+    Sys.sleep(0.2) #to make sure the API doesnt get flooded.
     getData(token = tok$access_token,
             startDate = input$daterange[1], 
             finishDate = input$daterange[2]) |>

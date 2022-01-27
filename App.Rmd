@@ -60,7 +60,7 @@ h3(
 )
 ```
 
-Warning: you can only use the generated token to gather data **once**
+Warning: you can only use the generated token to gather data **once**. When downloading data you are presented with fresh tokens, these should be saved and used for the next download.
 
 Data Download
 =====================================  
@@ -141,16 +141,10 @@ output$downloadData <- downloadHandler(
   )
 ```
 
-### New tokens
+### Step 5: New tokens
 
 Save these tokens. The old tokens are now inactive.
 
 ```{r}
 renderTable(data.frame(dat$newRefreshTokens), colnames = F, rownames = F)
-```
-
-### Sample of data
-
-```{r}
-renderTable(head(dat$out))
 ```
